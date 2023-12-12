@@ -1,48 +1,53 @@
 import pandas as pd
-from sklearn.utils import resample
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
-# Read training data
-train = pd.read_csv('Project/data/train.csv')
-X_train = train.drop('Tag', axis=1)
-columns_to_drop = ['Track', 'Artist']
-X_train_numerical = X_train.drop(columns=columns_to_drop)
+# Carica i dati di addestramento
+train_data = pd.read_csv('Project/data/train.csv')
 
-# Read and preprocess test data
-test = pd.read_csv('Project/data/test.csv')
-X_test = test.drop('Tag', axis=1)
-X_test_numerical = X_test.drop(columns=columns_to_drop)
+# Carica i dati di test
+test_data = pd.read_csv('Project/data/test.csv')
 
-# One-hot encoding for categorical variables
-X_train_encoded = pd.get_dummies(X_train_numerical)
-X_test_encoded = pd.get_dummies(X_test_numerical)
+# Seleziona le caratteristiche pertinenti per il clustering
+features = ['acousticness', 'danceability', 'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'time_signature', 'valence']
 
-# Rebalance the test set
-test_resampled = pd.DataFrame(columns=test.columns)
-tag_count = test['Tag'].value_counts()
-min_count = tag_count.min()
-
-for tag in tag_count.index:
-    tags = test[test['Tag'] == tag]
-    tag_resampled = resample(tags, replace=True, n_samples=min_count, random_state=42)
-    test_resampled = pd.concat([test_resampled, tag_resampled])
-
-X_test_resampled = test_resampled.drop('Tag', axis=1)
-
-# Standardize features
+# Normalizza le caratteristiche
 scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train_encoded)
-X_test_scaled = scaler.transform(X_test_resampled)
+X_train_scaled = scaler.fit_transform(train_data[features])
+X_test_scaled = scaler.transform(test_data[features])
 
-# Apply k-means clustering
-number_of_clusters = 5
-kmeans = KMeans(n_clusters=number_of_clusters, random_state=42)
+# Scegli il numero di cluster
+num_clusters = 5
+kmeans = KMeans(n_clusters=num_clusters, random_state=42)
 
-# Fit on training data
-kmeans.fit(X_train_scaled)
+# Aggiungi la colonna "cluster" al DataFrame di addestramento
+train_data['cluster'] = kmeans.fit_predict(X_train_scaled)
 
-# Predict clusters on test data
-test_clusters = kmeans.predict(X_test_scaled)
-print(test_clusters[:10])
+# Aggiungi la colonna "cluster" al DataFrame di test
+test_data['cluster'] = kmeans.predict(X_test_scaled)
+
+# Assegna il cluster più comune a ciascuna persona nel dataset di test
+mode_clusters_test = test_data.groupby('Tag')['cluster'].agg(lambda x: x.mode().iloc[0])
+
+# Crea un dizionario che mappa ciascuna persona al cluster assegnato nel test set
+cluster_assignment_test = dict(mode_clusters_test)
+
+# Stampa il mapping persona-cluster
+print(cluster_assignment_test)
+
+# Assegna il cluster nel dataset di addestramento utilizzando il mapping del test set
+train_data['cluster'] = train_data['Tag'].map(cluster_assignment_test)
+
+# Seleziona solo le canzoni assegnate al cluster della persona specifica nel dataset di addestramento
+selected_songs_train = test_data[['Tag', 'Track', 'cluster']]
+
+# Esporta il nuovo dataset
+selected_songs_train.to_csv('nuovo_dataset_train.csv', index=False)
+
+
+
+
+
+
+
 
