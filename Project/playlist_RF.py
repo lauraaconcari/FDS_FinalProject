@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Carica il file 'playlists.csv'
-playlists_data = pd.read_csv('playlists_DT.csv')  # Sostituisci 'path_to_playlists.csv' col percorso effettivo
+playlists_data = pd.read_csv('playlists_RF.csv')  # Sostituisci 'path_to_playlists.csv' col percorso effettivo
 
 # Ordina il DataFrame in base alle colonne 'Tag' e 'Song'
 playlists_data.sort_values(['predicted_Tag', 'Track'], inplace=True)
@@ -18,4 +18,4 @@ for tag in playlists_data['predicted_Tag'].unique():
 top20_songs_per_tag = top20_songs_per_tag[['Track', 'predicted_Tag']]
 
 # Salva il nuovo DataFrame in un nuovo file CSV
-top20_songs_per_tag.to_csv('top20_songs_per_tag_DT.csv', index=False)  # Sostituisci 'path_to_top20_songs_per_tag.csv' col percorso desiderato
+top20_songs_per_tag.to_csv('top20_songs_per_tag_RF.csv', index=False)  # Sostituisci 'path_to_top20_songs_per_tag.csv' col percorso desiderato
