@@ -5,84 +5,71 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_recall_curve, precision_score, recall_score
 from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
 
-train = pd.read_csv('Project/data/cleaned_train.csv')
+# Carica i dati di addestramento
+train_data = pd.read_csv('Project/data/cleaned_train.csv')
 
-# rebalance the element in the test set such that for each tag there will be the same amount of entries
-test = pd.read_csv('Project/data/cleaned_test.csv')
+# Carica i dati di test
+test_data = pd.read_csv('Project/data/cleaned_test.csv')
 
-X_test = test.drop(['Track', 'Artist', 'Tag'], axis=1)  # Exclude 'Track', 'Artist', and 'Tag' columns
-y_test = test['Tag']
+# Seleziona le caratteristiche pertinenti per il clustering
+features = ['acousticness', 'danceability', 'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'time_signature', 'valence']
+# 'Tag' è la colonna delle etichette
+X_train = train_data[features]
+y_train = train_data['Tag']
 
-tag_count = y_test.value_counts()
-test_resampled = pd.DataFrame(columns=test.columns)
-min_count = tag_count.min()
+# Dividi il dataset di addestramento in training e validation set
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
-for tag in tag_count.index:
-    tags = test[test['Tag'] == tag]
-    tag_resampled = resample(tags, replace=True, n_samples=min_count, random_state=42)
-    test_resampled = pd.concat([test_resampled, tag_resampled])
-
-# drop the features that are not useful for the classification
-X_train = train.drop(['Track', 'Artist', 'Tag'], axis=1)  # Exclude 'Track', 'Artist', and 'Tag' columns
-y_train = train['Tag'] # get the true labels for train
-
-# drop the useless features
-X_test = test_resampled.drop(['Track', 'Artist', 'Tag'], axis=1)  # Exclude 'Track', 'Artist', and 'Tag' columns
-y_test = test_resampled['Tag']
-
-# choose some values (odd) for K over which we are gonna iterate in order to find the best k
+# Crea e addestra il modello KNN
 k_values = [3, 5, 7, 9]
-
 param_grid = {'n_neighbors': k_values}
-# use gridsearch in order to find the best k
-
 grid_search = GridSearchCV(KNeighborsClassifier(), param_grid, cv=5)
 grid_search.fit(X_train, y_train)
-
-# find the best k
 best_k = grid_search.best_params_['n_neighbors']
+knn_model = KNeighborsClassifier(n_neighbors=best_k)
+knn_model.fit(X_train, y_train)
 
-# once found the best k, we are gonna work on that dataset
-knn = KNeighborsClassifier(n_neighbors=best_k)
-# train model
-knn.fit(X_train, y_train)
-# test the model
-y_pred = knn.predict(X_test)
-# compute some useful metrics
-precision = precision_score(y_test, y_pred, average='weighted')
-accuracy = accuracy_score(y_test, y_pred)
-recall = recall_score(y_test, y_pred, average='weighted')
-f1 = f1_score(y_test, y_pred, average='weighted')
+# Valuta le prestazioni del modello KNN sul set di validazione
+predictions_val_knn = knn_model.predict(X_val)
+accuracy_val_knn = accuracy_score(y_val, predictions_val_knn)
+print(f'Accuracy KNN: {accuracy_val_knn}')
 
-print(f'Precision: {precision}')
-print(f"Accuracy: {accuracy:.4f}")
-print(f'Recall: {recall}')
-print(f"F1 Score: {f1:.4f}")
+precision_knn = precision_score(y_val, predictions_val_knn, average='weighted')
+recall_knn = recall_score(y_val, predictions_val_knn, average='weighted')
+f1_knn = f1_score(y_val, predictions_val_knn, average='weighted')
 
-cm = confusion_matrix(y_test, y_pred)
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False)
-plt.xlabel('Predicted Labels')
+print(f'Precision KNN: {precision_knn}')
+print(f'Recall KNN: {recall_knn}')
+print(f'F1-Score KNN: {f1_knn}')
+
+cm_knn = confusion_matrix(y_val, predictions_val_knn)
+sns.heatmap(cm_knn, annot=True, fmt='d', cmap='Blues', cbar=False)
+plt.xlabel('Predicted Labels KNN')
 plt.ylabel('True Labels')
-plt.title('Confusion Matrix')
+plt.title('Confusion Matrix KNN')
 plt.show()
 
-# add the columns with the predictions, this will be usefull later when we will create the playlists
-test_resampled['predicted_Tag'] = y_pred
+# Supponiamo che 'X_test' sia la matrice delle caratteristiche del dataset di test
+X_test_knn = test_data[features]
 
-playlists_data = test_resampled.drop_duplicates()
-playlists_data = playlists_data.sort_values(['predicted_Tag', 'Track'])
+# Predici le etichette per il dataset di test utilizzando il modello KNN
+test_predictions_knn = knn_model.predict(X_test_knn)
 
-# initialize an empty dataframe which will contains the top 20 songs
-top_20 = pd.DataFrame()
+# Ora 'test_predictions_knn' contiene le etichette predette per il dataset di test con KNN
+# Puoi utilizzare queste etichette per creare le playlist personalizzate per ogni persona
+# Ad esempio, puoi filtrare il dataset per ogni persona e creare le rispettive playlist
+test_data['predicted_Tag_KNN'] = test_predictions_knn
 
-# iterate over the tags, for each tag we are gonna add to the dataframe the first 20 songs
-for tag in playlists_data['predicted_Tag'].unique():
-    tag_playlist = playlists_data[playlists_data['predicted_Tag'] == tag].head(20)
-    top_20 = pd.concat([top_20, tag_playlist])
+# Ora puoi utilizzare 'test_data' per creare le playlist personalizzate per ogni persona anche con KNN
+# Ad esempio, puoi filtrare il dataset per ogni persona e creare le rispettive playlist
+for tag_knn in test_data['predicted_Tag_KNN'].unique():
+    playlist_knn = test_data[test_data['predicted_Tag_KNN'] == tag_knn]
+    # Ora 'playlist_knn' contiene le canzoni predette per la persona specifica con KNN
+    # Puoi fare ulteriori elaborazioni per creare le playlist nel formato desiderato
+    # ad esempio, salvare le playlist in file o caricarle su una piattaforma di streaming musicale
 
-# we don't need to display any features beyond the track name and the tag
-top_20 = top_20[['Track', 'predicted_Tag']]
-
-# create the csv which contains the playlist
-top_20.to_csv('top20_knn.csv', index=False)
+# Per salvare le playlist in file CSV con KNN
+test_data.to_csv('playlists_KNN.csv', index=False)
