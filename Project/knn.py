@@ -2,14 +2,14 @@ import pandas as pd
 import seaborn as sns
 from sklearn.utils import resample
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_recall_curve
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_recall_curve, precision_score, recall_score
 from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
 
-train = pd.read_csv('data/cleaned_train.csv')
+train = pd.read_csv('Project/data/cleaned_train.csv')
 
 # rebalance the element in the test set such that for each tag there will be the same amount of entries
-test = pd.read_csv('data/cleaned_test.csv')
+test = pd.read_csv('Project/data/cleaned_test.csv')
 
 X_test = test.drop(['Track', 'Artist', 'Tag'], axis=1)  # Exclude 'Track', 'Artist', and 'Tag' columns
 y_test = test['Tag']
@@ -50,10 +50,14 @@ knn.fit(X_train, y_train)
 # test the model
 y_pred = knn.predict(X_test)
 # compute some useful metrics
+precision = precision_score(y_test, y_pred, average='weighted')
 accuracy = accuracy_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred, average='weighted')
 f1 = f1_score(y_test, y_pred, average='weighted')
 
+print(f'Precision: {precision}')
 print(f"Accuracy: {accuracy:.4f}")
+print(f'Recall: {recall}')
 print(f"F1 Score: {f1:.4f}")
 
 cm = confusion_matrix(y_test, y_pred)

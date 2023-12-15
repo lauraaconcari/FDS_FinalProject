@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import silhouette_score
 from collections import defaultdict
 
-train = pd.read_csv('data/cleaned_train.csv')
+train = pd.read_csv('Project/data/cleaned_train.csv')
 # we select a range of values for k, we need to find the best k in order to organize the songs
 k_values = range(2, 15)  
 # we consider only numeri feature
