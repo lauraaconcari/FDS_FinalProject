@@ -26,6 +26,7 @@ plt.figure(figsize=(10, 5))
 
 # intertia plot
 plt.subplot(1, 2, 1)
+plt.grid(True, linestyle='--', alpha=1)
 plt.plot(k_values, inertias, marker='o')
 plt.title('Inertia')
 plt.xlabel('Number of Clusters (k)')
@@ -33,6 +34,7 @@ plt.ylabel('Inertia')
 
 # silhouette plot
 plt.subplot(1, 2, 2)
+plt.grid(True, linestyle='--', alpha=1)
 plt.plot(k_values, silhouette_scores, marker='o')
 plt.title('Silhouette Score')
 plt.xlabel('Number of Clusters (k)')
@@ -44,7 +46,7 @@ plt.show()
 # where the inertia starts to decrease more slowly or where the silhouette score is maximized.
 # so there is a tradeoff between the silhouette score and the inertia. 
 # given the plot, we will chose k = 10
-best_k = 10
+best_k = 5
 best_kmeans = KMeans(n_clusters=best_k, random_state=42)
 best_kmeans.fit(X_train)
 
